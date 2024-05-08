@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PangleLib</string>
+    <string name="tt_native_banner_download">Download</string>
+    <string name="tt_native_banner_call">Call now</string>
+    <string name="tt_native_banner_view">View</string>
+    <string name="tt_ad_source">Ad source</string>
+</resources>

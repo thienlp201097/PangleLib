@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <Button
+        android:id="@+id/showBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Banner"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/showNative"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Native"
+        app:layout_constraintTop_toBottomOf="@+id/showBanner" />
+
+    <Button
+        android:id="@+id/loadAndShowInter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Load And Show Inter"
+        app:layout_constraintTop_toBottomOf="@+id/showNative" />
+
+    <Button
+        android:id="@+id/loadAndShowReward"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Show Load And Show Inter"
+        app:layout_constraintTop_toBottomOf="@+id/loadAndShowInter" />
+
+    <FrameLayout
+        android:id="@+id/frNative"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="100dp"
+        app:layout_constraintBottom_toTopOf="@+id/frBanner" />
+
+    <FrameLayout
+        android:id="@+id/frBanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="50dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
