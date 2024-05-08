@@ -47,9 +47,11 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation("com.pangle.global:ads-sdk:5.9.0.4")
+
     implementation(project (":panglelibrary"))
     // Kotlin
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }

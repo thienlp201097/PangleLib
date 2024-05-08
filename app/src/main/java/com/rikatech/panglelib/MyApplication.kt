@@ -27,9 +27,9 @@ class MyApplication : Application() {
                 )
             }
         })
-        PangleUtils.initSdk(this,"8025677")
+        PangleUtils.initSdk(this,"8025677", testMod = true, isShowAds = true)
         //app open ad
-        mPAGAppOpenAdManager = PAGAppOpenAdManager(this)
+        mPAGAppOpenAdManager = PAGAppOpenAdManager(this, "8025677")
     }
 
 

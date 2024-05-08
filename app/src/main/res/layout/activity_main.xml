@@ -44,7 +44,7 @@
 
     <FrameLayout
         android:id="@+id/frBanner"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="50dp"
         app:layout_constraintBottom_toBottomOf="parent"

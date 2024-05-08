@@ -17,6 +17,8 @@ import com.dktech.panglelibrary.R
 
 
 object NativeFuc {
+    const val UNIFIED_MEDIUM = 0
+    const val UNIFIED_SMALL = 1
     @SuppressLint("CutPasteId")
     fun populateAdView(mContext: Context, nativeAd : PAGNativeAd, nativeAdView : View) {
         val mTitle = nativeAdView.findViewById<View>(R.id.ad_title) as TextView

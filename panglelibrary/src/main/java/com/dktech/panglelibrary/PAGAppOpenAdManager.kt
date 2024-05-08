@@ -13,13 +13,14 @@ import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAd
 import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAdInteractionListener
 import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAdLoadListener
 import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenRequest
+import com.dktech.panglelibrary.sdk.PangleUtils
 import com.dktech.panglelibrary.ultils.RitConstants
 
 
 /**
  * AppOpenAdManger
  */
-class PAGAppOpenAdManager(private val myApplication: Application) : LifecycleObserver,
+class PAGAppOpenAdManager(private val myApplication: Application, val adsId: String) : LifecycleObserver,
     ActivityLifecycleCallbacks {
     private var appOpenAd: PAGAppOpenAd? = null
 
@@ -66,15 +67,22 @@ class PAGAppOpenAdManager(private val myApplication: Application) : LifecycleObs
         if (appOpenAd != null) {
             return
         }
+        if (!PangleUtils.isNetworkConnected(myApplication) || !PangleUtils.isShowAds) {
+            Log.e(TAG, "errorCode: No internet connection")
+            return
+        }
+        var id = adsId
+        if (PangleUtils.isTest){
+            id = RitConstants.RIT_OPEN_VERTICAL
+        }
         val request = PAGAppOpenRequest()
         request.timeout = LOAD_TIMEOUT
         PAGAppOpenAd.loadAd(
-            RitConstants.RIT_OPEN_VERTICAL,
+            id,
             request,
             object : PAGAppOpenAdLoadListener {
                 override fun onError(code: Int, message: String) {
                     Log.e(TAG, "errorCode: $code errorMessage: $message")
-
                     realTimeFetchListener?.loadedFail()
                 }
 
@@ -169,6 +177,10 @@ class PAGAppOpenAdManager(private val myApplication: Application) : LifecycleObs
      */
     @OnLifecycleEvent(Lifecycle.Event.ON_START)
     fun onStart() {
+        if (PangleUtils.isAdsShowing){
+            Log.d(TAG, "isAdsShowing!!")
+            return
+        }
         Log.d(TAG, "onStart")
         showAdIfAvailable(null)
     }

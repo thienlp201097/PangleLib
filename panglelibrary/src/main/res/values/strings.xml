@@ -4,4 +4,11 @@
     <string name="tt_native_banner_call">Call now</string>
     <string name="tt_native_banner_view">View</string>
     <string name="tt_ad_source">Ad source</string>
+    <string name="id_test_inter">980088188</string>
+    <string name="id_test_rewarded">980088192</string>
+    <string name="id_test_banner">980099802</string>
+    <string name="id_test_app_open">980088196</string>
+    <string name="id_test_native">980088216</string>
+    <string name="loading_ads">Loading...</string>
+
 </resources>

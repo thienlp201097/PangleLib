@@ -54,6 +54,9 @@ dependencies {
     implementation("android.arch.lifecycle:extensions:1.1.1")
     implementation ("com.squareup.leakcanary:leakcanary-android-no-op:1.5.4")
     implementation ("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
+    implementation("com.airbnb.android:lottie:6.4.0")
+    implementation("com.intuit.sdp:sdp-android:1.1.1")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
