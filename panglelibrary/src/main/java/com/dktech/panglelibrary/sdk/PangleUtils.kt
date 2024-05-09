@@ -1,5 +1,6 @@
 package com.dktech.panglelibrary.sdk
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
@@ -8,12 +9,13 @@ import android.graphics.drawable.ColorDrawable
 import android.net.ConnectivityManager
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.LinearLayout
-import android.widget.RelativeLayout
+import androidx.lifecycle.LifecycleOwner
 import com.airbnb.lottie.LottieAnimationView
 import com.bytedance.sdk.openadsdk.api.banner.PAGBannerAd
 import com.bytedance.sdk.openadsdk.api.banner.PAGBannerAdInteractionListener
@@ -27,18 +29,25 @@ import com.bytedance.sdk.openadsdk.api.interstitial.PAGInterstitialRequest
 import com.bytedance.sdk.openadsdk.api.nativeAd.PAGNativeAd
 import com.bytedance.sdk.openadsdk.api.nativeAd.PAGNativeAdLoadListener
 import com.bytedance.sdk.openadsdk.api.nativeAd.PAGNativeRequest
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAd
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAdInteractionListener
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenAdLoadListener
+import com.bytedance.sdk.openadsdk.api.open.PAGAppOpenRequest
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardItem
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardedAd
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardedAdInteractionListener
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardedAdLoadListener
 import com.bytedance.sdk.openadsdk.api.reward.PAGRewardedRequest
+import com.dktech.panglelibrary.PAGAppOpenAdManager
 import com.dktech.panglelibrary.R
+import com.dktech.panglelibrary.callback.PAGAOACallback
 import com.dktech.panglelibrary.callback.PAGBannerCallback
 import com.dktech.panglelibrary.callback.PAGInterCallback
-import com.dktech.panglelibrary.callback.PAGRewardCallback
 import com.dktech.panglelibrary.callback.PAGNativeCallback
+import com.dktech.panglelibrary.callback.PAGRewardCallback
 import com.dktech.panglelibrary.holder.InterHolder
 import com.dktech.panglelibrary.holder.InterRewardHolder
+import com.dktech.panglelibrary.holder.NativeHolder
 import com.dktech.panglelibrary.ultils.AdManagerHolder
 import com.dktech.panglelibrary.ultils.NativeFuc
 import com.dktech.panglelibrary.ultils.RitConstants
@@ -49,6 +58,8 @@ object PangleUtils {
     var isShowAds = false
     var isAdsShowing = false
     var dialogFullScreen: Dialog? = null
+    var appOpenAd: PAGAppOpenAd? = null
+    @JvmStatic
     fun initSdk(context: Context, appKey: String, testMod: Boolean, isShowAds : Boolean) {
         isTest = testMod
         this.isShowAds = isShowAds
@@ -64,7 +75,8 @@ object PangleUtils {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         return cm.activeNetworkInfo != null && cm.activeNetworkInfo!!.isConnected
     }
-
+    @SuppressLint("InflateParams")
+    @JvmStatic
     fun loadBanner(
         context: Context,
         codeId: String,
@@ -96,9 +108,6 @@ object PangleUtils {
 
             override fun onAdLoaded(bannerAd: PAGBannerAd) {
                 viewGroup.removeView(tagView)
-                if (bannerAd == null) {
-                    return
-                }
                 bannerAd.setAdInteractionListener(object : PAGBannerAdInteractionListener {
                     override fun onAdShowed() {
                         callback.onAdShowed()
@@ -114,14 +123,91 @@ object PangleUtils {
 
                     }
                 })
-                if (bannerAd != null) {
-                    //step3:add ad view to view container
-                    viewGroup.addView(bannerAd.bannerView)
-                }
+                viewGroup.addView(bannerAd.bannerView)
+            }
+        })
+    }
+    @JvmStatic
+    fun loadAndGetNativePAG(context: Context, nativeHolder: NativeHolder, adCallback: PAGNativeCallback){
+        if (!isShowAds || !isNetworkConnected(context)) {
+            adCallback.onAdFail("No internet")
+            return
+        }
+        var codeId = nativeHolder.ads
+        if (isTest) {
+            codeId = RitConstants.RIT_NATIVE
+        }
+        nativeHolder.isLoad = true
+        val request = PAGNativeRequest()
+        PAGNativeAd.loadAd(codeId, request, object : PAGNativeAdLoadListener {
+            override fun onError(code: Int, message: String) {
+                adCallback.onAdFail(message)
+                nativeHolder.nativeAd = null
+                nativeHolder.isLoad = false
+                nativeHolder.native_mutable.value = null
+            }
+
+            override fun onAdLoaded(pagNativeAd: PAGNativeAd) {
+                adCallback.onAdShowed()
+                nativeHolder.nativeAd = pagNativeAd
+                nativeHolder.isLoad = false
+                nativeHolder.native_mutable.value = pagNativeAd
             }
         })
     }
 
+    @SuppressLint("InflateParams")
+    @JvmStatic
+    fun showNativePAG(context: Context, nativeHolder: NativeHolder, layout: Int, viewGroup: ViewGroup, size : Int, callback: PAGNativeCallback){
+        if (!isShowAds || !isNetworkConnected(context)) {
+            viewGroup.visibility = View.GONE
+            return
+        }
+        context as Activity
+        val tagView: View = if (size == NativeFuc.UNIFIED_MEDIUM) {
+            context.layoutInflater.inflate(R.layout.layoutnative_loading_medium, null, false)
+        } else {
+            context.layoutInflater.inflate(R.layout.layoutnative_loading_small, null, false)
+        }
+        val shimmerFrameLayout: ShimmerFrameLayout = tagView.findViewById(R.id.shimmer_view_container)
+        viewGroup.removeAllViews()
+        if (!nativeHolder.isLoad) {
+            if (nativeHolder.nativeAd != null) {
+                val adView = context.layoutInflater.inflate(layout, null)
+                NativeFuc.populateAdView(context, nativeHolder.nativeAd!!, adView)
+                shimmerFrameLayout.stopShimmer()
+                nativeHolder.native_mutable.removeObservers((context as LifecycleOwner))
+                viewGroup.removeAllViews()
+                viewGroup.addView(adView)
+                callback.onAdShowed()
+            } else {
+                shimmerFrameLayout.stopShimmer()
+                nativeHolder.native_mutable.removeObservers((context as LifecycleOwner))
+                callback.onAdFail("None Show")
+            }
+        } else {
+            viewGroup.addView(tagView, 0)
+            shimmerFrameLayout.startShimmer()
+            nativeHolder.native_mutable.observe((context as LifecycleOwner)) { nativeAd: PAGNativeAd? ->
+                if (nativeAd != null) {
+                    val adView = context.layoutInflater.inflate(layout, null)
+                    NativeFuc.populateAdView(context, nativeAd, adView)
+                    shimmerFrameLayout.stopShimmer()
+                    viewGroup.removeAllViews()
+                    viewGroup.addView(adView)
+                    callback.onAdShowed()
+                    nativeHolder.native_mutable.removeObservers((context as LifecycleOwner))
+                } else {
+                    shimmerFrameLayout.stopShimmer()
+                    viewGroup.removeAllViews()
+                    callback.onAdFail("None Show native_mutable")
+                    nativeHolder.native_mutable.removeObservers((context as LifecycleOwner))
+                }
+            }
+        }
+    }
+    @SuppressLint("InflateParams")
+    @JvmStatic
     fun loadAndShowNative(context: Context, id: String, layout: Int, viewGroup: ViewGroup,size : Int,callback: PAGNativeCallback) {
         if (!isNetworkConnected(context) || !isShowAds) {
             callback.onAdFail("No internet connection")
@@ -160,7 +246,7 @@ object PangleUtils {
             }
         })
     }
-
+    @JvmStatic
     fun loadAndShowPAGInterstitial(
         context: Context,
         interHolder: InterHolder,
@@ -193,7 +279,7 @@ object PangleUtils {
                 }
             })
     }
-
+    @JvmStatic
     fun showPAGInterstitial(
         context: Context,
         interHolder: InterHolder,
@@ -224,7 +310,7 @@ object PangleUtils {
         }
     }
 
-
+    @JvmStatic
     fun loadAdPAGRewarded(context: Context, interHolder: InterRewardHolder, callback: PAGRewardCallback) {
         if (!isNetworkConnected(context) || !isShowAds) {
             callback.onAdFail("No internet connection")
@@ -253,7 +339,7 @@ object PangleUtils {
                 }
             })
     }
-
+    @JvmStatic
     fun showPAGRewardedAd(context: Context, interHolder: InterRewardHolder,callback : PAGRewardCallback) {
         if (interHolder.inter != null) {
             Handler(Looper.getMainLooper()).postDelayed({
@@ -317,6 +403,67 @@ object PangleUtils {
             }
         } catch (_: Exception) {
 
+        }
+    }
+
+
+    @JvmStatic
+    fun loadAndShowAOA(context: Context, adsId: String,pagaoaCallback: PAGAOACallback){
+        if (!isNetworkConnected(context) || !isShowAds) {
+            Log.e("===AOA===", "errorCode: No internet connection")
+            return
+        }
+        var id = adsId
+        if (isTest){
+            id = RitConstants.RIT_OPEN_VERTICAL
+        }
+        val request = PAGAppOpenRequest()
+        PAGAppOpenAd.loadAd(id, request,
+            object : PAGAppOpenAdLoadListener {
+                override fun onError(code: Int, message: String) {
+                    Log.e("===AOA===", "errorCode: $code errorMessage: $message")
+                    pagaoaCallback.onFailed()
+                }
+
+                override fun onAdLoaded(ad: PAGAppOpenAd) {
+                    appOpenAd = ad
+                    showAdIfAvailable(context,pagaoaCallback)
+                }
+            })
+    }
+
+    fun showAdIfAvailable(context: Context, callback : PAGAOACallback) {
+        if (!PAGAppOpenAdManager.isShowingAd) {
+            if (appOpenAd != null) {
+                Log.d(PAGAppOpenAdManager.TAG, "Will show ad.")
+                appOpenAd?.setAdInteractionListener(object : PAGAppOpenAdInteractionListener {
+                    override fun onAdShowed() {
+                        Log.d(PAGAppOpenAdManager.TAG, "onAdShow")
+                        PAGAppOpenAdManager.isShowingAd = true
+
+                    }
+
+                    override fun onAdClicked() {
+                        Log.d(PAGAppOpenAdManager.TAG, "onAdClicked")
+                    }
+
+                    override fun onAdDismissed() {
+                        Log.d(PAGAppOpenAdManager.TAG, "onAdDismissed")
+                        callback.onClosed()
+                    }
+                })
+                appOpenAd?.show(context as Activity)
+                appOpenAd = null
+            } else {
+                Log.d(PAGAppOpenAdManager.TAG, "No ad to show. to fetchAd")
+                callback.onFailed()
+            }
+        } else {
+            Log.d(
+                PAGAppOpenAdManager.TAG,
+                "There is currently an ad display or The current scene does not want to show the open screen"
+            )
+            callback.onFailed()
         }
     }
 

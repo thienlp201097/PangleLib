@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
@@ -27,7 +29,17 @@ class PAGAppOpenAdManager(private val myApplication: Application, val adsId: Str
     private var currentActivity: Activity? = null
 
     private var mAdValidStartTime: Long = 0
+    private val disabledAppOpenList: MutableList<Class<*>> = ArrayList()
 
+    fun disableAppResumeWithActivity(activityClass: Class<*>) {
+        Log.d(TAG, "disableAppResumeWithActivity: " + activityClass.name)
+        disabledAppOpenList.add(activityClass)
+    }
+
+    fun enableAppResumeWithActivity(activityClass: Class<*>) {
+        Log.d(TAG, "enableAppResumeWithActivity: " + activityClass.name)
+        Handler(Looper.getMainLooper()).postDelayed({ disabledAppOpenList.remove(activityClass) }, 40)
+    }
     /**
      * Need to get the request advertisement callback in real time
      * （Example：Cold start）
@@ -181,16 +193,23 @@ class PAGAppOpenAdManager(private val myApplication: Application, val adsId: Str
             Log.d(TAG, "isAdsShowing!!")
             return
         }
+        for (activity in disabledAppOpenList) {
+            if (activity.name == currentActivity?.javaClass?.name) {
+                Log.d(TAG, "onStart: activity is disabled")
+                return
+            }
+        }
+        Log.d(TAG, "disableAppResumeWithActivity: " + currentActivity?.javaClass?.name)
         Log.d(TAG, "onStart")
         showAdIfAvailable(null)
     }
 
     companion object {
-        private const val TAG = "PAGAppOpenAdManager"
+         const val TAG = "PAGAppOpenAdManager"
 
-        private var isShowingAd = false
+         var isShowingAd = false
 
-        private const val LOAD_TIMEOUT = 3000
+         const val LOAD_TIMEOUT = 3000
 
         /**
          * There is currently an ad display, or The current scene does not want to show the open screen

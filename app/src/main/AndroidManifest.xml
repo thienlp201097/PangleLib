@@ -19,6 +19,9 @@
         android:theme="@style/Theme.PangleLib"
         tools:targetApi="31">
         <activity
+            android:name=".SplashActivity"
+            android:exported="false" />
+        <activity
             android:name=".OtherScreen"
             android:exported="false" />
         <activity
